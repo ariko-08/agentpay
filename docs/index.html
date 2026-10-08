@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; base-uri 'none'; form-action 'none'">
+<meta charset="utf-8">
+<title>AgentPay Prototype</title>
+<style>
+:root{--bg:#0f1115;--card:#1b1f2a;--purple:#9945FF;--green:#14F195;--text:#e6e8ee;--sub:#8a90a2;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;width:1280px;height:720px;overflow:hidden;}
+header{padding:16px 28px;border-bottom:1px solid #262b38;}
+header h1{margin:0;font-size:22px;color:var(--green);}
+header p{margin:2px 0 0;font-size:13px;color:var(--sub);}
+.main{display:flex;gap:18px;padding:18px 28px;}
+.col-left{width:460px;display:flex;flex-direction:column;gap:14px;}
+.col-right{flex:1;display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--card);border:1px solid #262b38;border-radius:10px;padding:14px 16px;}
+.card h3{margin:0 0 4px;font-size:15px;}
+.card .role{font-size:12px;color:var(--sub);margin-bottom:8px;}
+.row{display:flex;justify-content:space-between;align-items:center;}
+.bal{font-size:13px;color:var(--green);}
+button{background:var(--purple);color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer;}
+button:hover{opacity:.9;}
+#pay-status{font-size:12px;color:#ffd27a;min-height:16px;margin-top:8px;}
+#response-panel{display:none;background:#10231c;border:1px solid var(--green);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:8px;color:var(--green);}
+.graph-box{background:var(--card);border:1px solid #262b38;border-radius:10px;padding:10px;height:200px;}
+.log-box{background:var(--card);border:1px solid #262b38;border-radius:10px;padding:10px;flex:1;overflow:hidden;}
+.log-box h3{margin:0 0 6px;font-size:14px;}
+#tx-log{list-style:none;margin:0;padding:0;font-size:12px;max-height:150px;overflow:hidden;}
+#tx-log li{padding:4px 0;border-bottom:1px solid #262b38;color:var(--sub);}
+#tx-log li span{color:var(--green);}
+.policy-btn-wrap{text-align:right;}
+#policy-panel{display:none;background:var(--card);border:1px solid var(--purple);border-radius:10px;padding:12px;margin-top:8px;font-size:12px;color:var(--sub);}
+#policy-panel b{color:var(--text);}
+footer{position:absolute;bottom:6px;left:28px;font-size:11px;color:#565c6c;}
+svg text{fill:var(--sub);font-size:11px;}
+</style>
+</head>
+<body>
+<header>
+<h1>AgentPay</h1>
+<p>Instant stablecoin payments between AI agents for data, compute, and APIs on Solana</p>
+</header>
+<div class="main">
+  <div class="col-left">
+    <div class="card">
+      <div class="row"><h3>DataAgent-7</h3><span class="bal">Balance: $<span id="bal-data" data-demo="balance-data">12.40</span></span></div>
+      <div class="role">Sells: 1,000-row dataset · 0.05 USDC/call</div>
+      <button data-demo="btn-call-data" onclick="callData()">Request Data (0.05 USDC)</button>
+      <div id="pay-status" data-demo="pay-status"></div>
+      <div id="response-panel" data-demo="response-panel">📊 Dataset delivered: 1,000 rows returned to RequesterAgent-1</div>
+    </div>
+    <div class="card">
+      <div class="row"><h3>ComputeAgent-3</h3><span class="bal">Balance: $<span id="bal-compute" data-demo="balance-compute">8.90</span></span></div>
+      <div class="role">Sells: GPU inference · 0.12 USDC/call</div>
+      <button data-demo="btn-call-compute" onclick="callCompute()">Request Inference (0.12 USDC)</button>
+    </div>
+    <div class="card">
+      <div class="row"><h3>RequesterAgent-1</h3><span class="bal">Balance: $<span id="bal-req" data-demo="balance-requester">50.00</span></span></div>
+      <div class="role">Buyer agent — auto-funds micro-payments via Solana Pay</div>
+      <div class="policy-btn-wrap">
+        <button data-demo="btn-show-rules" onclick="togglePolicy()">Show Policy Rules</button>
+      </div>
+      <div id="policy-panel" data-demo="policy-panel">
+        <b>Spending Policy — RequesterAgent-1</b><br>
+        Max per call: 0.50 USDC · Daily limit: $5.00 · Allowed agents: DataAgent-7, ComputeAgent-3
+      </div>
+    </div>
+  </div>
+  <div class="col-right">
+    <div class="graph-box">
+      <svg width="100%" height="180" viewBox="0 0 440 180">
+        <line id="edge-data" x1="220" y1="30" x2="90" y2="150" stroke="#333848" stroke-width="2"/>
+        <line id="edge-compute" x1="220" y1="30" x2="350" y2="150" stroke="#333848" stroke-width="2"/>
+        <circle cx="220" cy="30" r="22" fill="#2a2f3d" stroke="var(--purple)" stroke-width="2"/>
+        <text x="220" y="34" text-anchor="middle">Requester</text>
+        <circle cx="90" cy="150" r="22" fill="#2a2f3d" stroke="var(--green)" stroke-width="2"/>
+        <text x="90" y="154" text-anchor="middle">DataAgent</text>
+        <circle cx="350" cy="150" r="22" fill="#2a2f3d" stroke="var(--green)" stroke-width="2"/>
+        <text x="350" y="154" text-anchor="middle">ComputeAgent</text>
+      </svg>
+    </div>
+    <div class="log-box">
+      <h3>Live Transaction Log</h3>
+      <ul id="tx-log" data-demo="tx-log">
+        <li>Waiting for agent-to-agent activity...</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<footer>Prototype — all data is simulated</footer>
+<script>
+let dataStep=0, balReq=50.00, balData=12.40, balCompute=8.90;
+function fmt(n){return n.toFixed(2);}
+function logTx(text){
+  const log=document.getElementById('tx-log');
+  if(log.children[0] && log.children[0].textContent.indexOf('Waiting')>-1){log.innerHTML='';}
+  const li=document.createElement('li');
+  li.innerHTML=text;
+  log.prepend(li);
+}
+function callData(){
+  const btn=document.querySelector('[data-demo="btn-call-data"]');
+  const status=document.getElementById('pay-status');
+  if(dataStep===0){
+    status.textContent='🔒 402 Payment Required — sign to continue';
+    btn.textContent='Sign & Pay 0.05 USDC';
+    dataStep=1;
+  } else {
+    balReq-=0.05; balData+=0.05;
+    document.getElementById('bal-req').textContent=fmt(balReq);
+    document.getElementById('bal-data').textContent=fmt(balData);
+    status.textContent='✅ Paid via Solana Pay';
+    btn.textContent='Request Data (0.05 USDC)';
+    document.getElementById('response-panel').style.display='block';
+    document.getElementById('edge-data').setAttribute('stroke','var(--green)');
+    document.getElementById('edge-data').setAttribute('stroke-width','4');
+    logTx('Requester → DataAgent-7: <span>0.05 USDC</span> paid, dataset returned');
+    dataStep=0;
+  }
+}
+function callCompute(){
+  balReq-=0.12; balCompute+=0.12;
+  document.getElementById('bal-req').textContent=fmt(balReq);
+  document.getElementById('bal-compute').textContent=fmt(balCompute);
+  document.getElementById('edge-compute').setAttribute('stroke','var(--green)');
+  document.getElementById('edge-compute').setAttribute('stroke-width','4');
+  logTx('Requester → ComputeAgent-3: <span>0.12 USDC</span> paid, inference returned');
+}
+function togglePolicy(){
+  const p=document.getElementById('policy-panel');
+  const btn=document.querySelector('[data-demo="btn-show-rules"]');
+  if(p.style.display==='block'){p.style.display='none';btn.textContent='Show Policy Rules';}
+  else{p.style.display='block';btn.textContent='Hide Policy Rules';}
+}
+</script>
+</body>
+</html>
